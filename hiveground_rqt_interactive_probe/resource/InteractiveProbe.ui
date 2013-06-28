@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>406</width>
+    <width>415</width>
     <height>367</height>
    </rect>
   </property>
@@ -444,6 +444,13 @@
     </layout>
    </item>
    <item>
+    <widget class="QPushButton" name="plan_button">
+     <property name="text">
+      <string>Plan</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -458,22 +465,9 @@
    </item>
   </layout>
   <zorder></zorder>
-  <zorder>joy_topic_check_box</zorder>
-  <zorder>joy0_select_combo_box</zorder>
-  <zorder>joy_translation_scaling_spin_box</zorder>
-  <zorder>joy_rotation_scaling_spin_box</zorder>
-  <zorder>label_3</zorder>
-  <zorder>label_4</zorder>
-  <zorder>enable_translation</zorder>
-  <zorder>enable_tx</zorder>
-  <zorder>enable_ty</zorder>
-  <zorder>enable_tz</zorder>
-  <zorder>enable_ry</zorder>
-  <zorder>enable_rx</zorder>
-  <zorder>enable_rotation</zorder>
-  <zorder>enable_rz</zorder>
   <zorder>verticalSpacer</zorder>
   <zorder></zorder>
+  <zorder>plan_button</zorder>
  </widget>
  <resources/>
  <connections>

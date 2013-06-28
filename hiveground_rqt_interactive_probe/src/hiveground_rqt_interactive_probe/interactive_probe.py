@@ -106,6 +106,7 @@ class InteractiveProbe(Plugin):
         self._widget.clear_button.clicked.connect(self._clearAllMarkers)      
         self._widget.joy_topic_check_box.toggled.connect(self._enableJoyMessageToggled)
         self._widget.reset_rotation.clicked.connect(self._resetRotation)
+        self._widget.plan_button.clikcked.connect(self._planMotion)
         
         
         context.add_widget(self._widget)
@@ -241,7 +242,10 @@ class InteractiveProbe(Plugin):
         self.marker_info[self.selected_marker].pose.orientation.w = 1
         self.server.setPose(self.selected_marker, self.marker_info[self.selected_marker].pose)
         self.server.applyChanges()
-    
+        
+    def _planMotion(self):
+        pass
+        
         
     def deleteMarker(self, name):
         if name in self.marker_info: 
