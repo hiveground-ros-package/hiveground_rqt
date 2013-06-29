@@ -52,6 +52,9 @@ import tf
 import copy
 import moveit_msgs.srv
 import moveit_msgs.msg
+import control_msgs.msg
+import trajectory_msgs.msg
+import actionlib
 
 
 class MarkerInfo:
@@ -106,7 +109,7 @@ class InteractiveProbe(Plugin):
         self._widget.clear_button.clicked.connect(self._clearAllMarkers)      
         self._widget.joy_topic_check_box.toggled.connect(self._enableJoyMessageToggled)
         self._widget.reset_rotation.clicked.connect(self._resetRotation)
-        self._widget.plan_button.clikcked.connect(self._planMotion)
+        self._widget.plan_button.clicked.connect(self._planMotion)
         
         
         context.add_widget(self._widget)
@@ -118,10 +121,11 @@ class InteractiveProbe(Plugin):
         self.marker_info = dict()
         self.selected_marker = ""
         self.last_button_state = [0 for i in range(16)]
+        self.arm_is_active = False
         
         
            
-        rospy.wait_for_service("compute_ik")
+        #rospy.wait_for_service("compute_ik")
         self.listener = tf.TransformListener()
         self.listener.waitForTransform("base_link", "link6", rospy.Time(0), rospy.Duration(5.0))
         (trans,rot) = self.listener.lookupTransform("base_link", "link6", rospy.Time(0))
@@ -138,8 +142,14 @@ class InteractiveProbe(Plugin):
         self._widget.ry_spin_box.setValue(euler[1])
         self._widget.rz_spin_box.setValue(euler[2])
 
+        #Refresh all related topics
         self.refreshTopics()
-        #rospy.Subscriber("/spacenav/joy", sensor_msgs.msg.Joy, self.callbackSpacenav)                      
+        
+        self.current_joint_state = sensor_msgs.msg.JointState()
+        self.joint_state_subscriber = rospy.Subscriber("joint_states", sensor_msgs.msg.JointState, self.callbackJointState)
+                           
+        self.action_client = actionlib.SimpleActionClient("/midem_node/PTPController/ptp_follow_joint_trajectory", control_msgs.msg.FollowJointTrajectoryAction)
+        self.action_client.wait_for_server(rospy.Duration(1.0))
 
     def shutdown_plugin(self):
         # TODO unregister all publishers here
@@ -244,9 +254,58 @@ class InteractiveProbe(Plugin):
         self.server.applyChanges()
         
     def _planMotion(self):
+        if len(self.selected_marker) == 0:
+            QMessageBox.warning(self._widget, 
+                                "No marker selected", 
+                                "Please select target marker",
+                                QMessageBox.Ok)
+            return
+        self.moveToMarker(self.selected_marker)
+        
+       
+    def callbackTrajectoryDone(self, status, result):
+        rospy.loginfo("done!")
+        rospy.loginfo(status)
+        rospy.loginfo(result)
+        self.arm_is_active = False
+        
+    def moveToMarker(self, name):
+        req = moveit_msgs.srv.GetPositionIKRequest()        
+        req.ik_request.group_name = "manipulator";
+        req.ik_request.pose_stamped.header.frame_id = "base_link";
+        req.ik_request.pose_stamped.pose = self.marker_info[name].pose;
+        req.ik_request.avoid_collisions = True;    
+        req.ik_request.robot_state.joint_state = self.current_joint_state;         
+                      
+        try:
+            res = moveit_msgs.srv.GetPositionIKResponse()
+            res = rospy.ServiceProxy("compute_ik", moveit_msgs.srv.GetPositionIK).call(req)
+            if res.error_code.val == moveit_msgs.msg.MoveItErrorCodes.SUCCESS:
+                #prepair target 
+                trajectory = trajectory_msgs.msg.JointTrajectory()
+                trajectory.joint_names = self.current_joint_state.name
+                point = trajectory_msgs.msg.JointTrajectoryPoint()
+                point.positions = res.solution.joint_state.position
+                point.time_from_start = rospy.Duration(1.0);
+                trajectory.points.append(point)
+                
+                
+                goal = control_msgs.msg.FollowJointTrajectoryGoal()
+                goal.trajectory = trajectory
+                goal.trajectory.header.stamp = rospy.Time.now()
+                
+                self.arm_is_active = True
+                self.action_client.send_goal(goal, self.callbackTrajectoryDone)
+                                
+            elif res.error_code.val == moveit_msgs.msg.MoveItErrorCodes.NO_IK_SOLUTION:
+                rospy.loginfo("no IK solution")
+            else:
+                rospy.loginfo("error " + str(res.error_code))
+        except rospy.ServiceException, e:
+            print "Service call failed: %s"%e
         pass
         
-        
+    
     def deleteMarker(self, name):
         if name in self.marker_info: 
             del self.marker_info[name]                 
@@ -270,7 +329,7 @@ class InteractiveProbe(Plugin):
                 if type == "sensor_msgs/Joy":
                     self._widget.joy0_select_combo_box.addItem(name)
                     rospy.loginfo("Add " + name + " to joystick list")
-                
+                    
                 
     def callbackJoystick(self, msg):           
         if self.last_button_state[0] != msg.buttons[0]:            
@@ -300,8 +359,34 @@ class InteractiveProbe(Plugin):
         self.moveMarkerRelatively(self.selected_marker, 
                                   -msg.axes[0]*t_scale, -msg.axes[1]*t_scale, msg.axes[2]*t_scale,
                                   -msg.axes[3]*r_scale, -msg.axes[4]*r_scale, msg.axes[5]*r_scale)
+    
+    def callbackJointState(self, msg):
+        self.current_joint_state = msg
+    
+    def checkIK(self, pose):
+        #check IK
+        req = moveit_msgs.srv.GetPositionIKRequest()        
+        req.ik_request.group_name = "manipulator";
+        req.ik_request.pose_stamped.header.frame_id = "base_link";
+        req.ik_request.pose_stamped.pose = pose;
+        req.ik_request.avoid_collisions = True;                
+                      
+        try:
+            res = rospy.ServiceProxy("compute_ik", moveit_msgs.srv.GetPositionIK).call(req)
+            if res.error_code.val == moveit_msgs.msg.MoveItErrorCodes.SUCCESS:
+                return True
+            elif res.error_code.val == moveit_msgs.msg.MoveItErrorCodes.NO_IK_SOLUTION:
+                rospy.loginfo("no solution")
+            else:
+                rospy.loginfo("error " + str(res.error_code))
+        except rospy.ServiceException, e:
+            print "Service call failed: %s"%e
+        return False
+    
+    def getIKJointPositionsWithSeedState(self, pose):
+        #check IK
+        pass
         
-            
         
         
     def moveMarkerRelatively(self, name, x, y, z, rx, ry, rz):             
@@ -362,29 +447,15 @@ class InteractiveProbe(Plugin):
         req.ik_request.group_name = "manipulator";
         req.ik_request.pose_stamped.header.frame_id = "base_link";
         req.ik_request.pose_stamped.pose = pose;
-                        
+        req.ik_request.avoid_collisions = True;                
                
-        
-        try:
-            res = rospy.ServiceProxy("compute_ik", moveit_msgs.srv.GetPositionIK).call(req)
-            if res.error_code.val == moveit_msgs.msg.MoveItErrorCodes.SUCCESS:
-                self.marker_info[name].pose = pose                                  
-                self.server.setPose(name, pose)
-                self.server.applyChanges()
-            elif res.error_code.val == moveit_msgs.msg.MoveItErrorCodes.NO_IK_SOLUTION:
-                rospy.loginfo("no solution")
-            else:
-                rospy.loginfo("error " + str(res.error_code))
-        except rospy.ServiceException, e:
-            print "Service call failed: %s"%e
-                        
-        
-        
-            
-        
-               
-        
-        
+        if self.checkIK(pose):
+            self.marker_info[name].pose = pose                                  
+            self.server.setPose(name, pose)
+            self.server.applyChanges()
+            if self._widget.follow_check_box.isChecked():
+                self.moveToMarker(name)
+                   
     def processFeedback(self, feedback):
         s = "Feedback from marker '" + feedback.marker_name
         s += "' / control '" + feedback.control_name + "'"
@@ -405,8 +476,13 @@ class InteractiveProbe(Plugin):
         elif feedback.event_type == InteractiveMarkerFeedback.POSE_UPDATE:
             #if self.marker_info[feedback.marker_name].pose != feedback.pose:
                 #rospy.loginfo(s + ": pose changed")        
-                self.marker_info[feedback.marker_name].pose = feedback.pose
-# TODO
+                if self.checkIK(feedback.pose):
+                    self.marker_info[feedback.marker_name].pose = feedback.pose                                  
+                    if self._widget.follow_check_box.isChecked():
+                        self.moveToMarker(feedback.marker_name)
+                else:
+                    self.server.setPose(feedback.marker_name, self.marker_info[feedback.marker_name].pose)
+                      
 #          << "\nposition = "
 #          << feedback.pose.position.x
 #          << ", " << feedback.pose.position.y
