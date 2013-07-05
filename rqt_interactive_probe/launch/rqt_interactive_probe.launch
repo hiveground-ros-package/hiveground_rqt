@@ -1,0 +1,6 @@
+<launch>
+  <node type="rqt_interactive_probe" pkg="rqt_interactive_probe" name="midem_interactive_probe" output="screen">      
+    <remap from="joint_states" to="/midem/joint_states" />
+    <remap from="ptp_follow_trajectory" to="/midem/ptp_controller/ptp_follow_joint_trajectory" />
+  </node>
+</launch>

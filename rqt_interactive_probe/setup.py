@@ -5,7 +5,7 @@ from distutils.core import setup
 from catkin_pkg.python_setup import generate_distutils_setup
 
 d = generate_distutils_setup(
-    packages=['hiveground_rqt_interactive_probe'],
+    packages=['rqt_interactive_probe'],
     package_dir={'': 'src'},    
 )
 

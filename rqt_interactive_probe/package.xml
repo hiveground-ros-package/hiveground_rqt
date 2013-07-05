@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>hiveground_rqt_interactive_probe</name>
-  <version>1.0.0</version>
-  <description>hiveground_rqt_interactive_probe</description>
+  <name>rqt_interactive_probe</name>
+  <version>0.1.0</version>
+  <description>rqt_interactive_probe</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->

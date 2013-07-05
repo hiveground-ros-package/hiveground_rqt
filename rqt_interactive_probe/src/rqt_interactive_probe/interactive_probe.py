@@ -42,7 +42,7 @@ from python_qt_binding import loadUi
 from python_qt_binding.QtGui import *
 
 
-import roslib; roslib.load_manifest("interactive_markers");
+import roslib; roslib.load_manifest("rqt_interactive_probe");
 from interactive_markers.interactive_marker_server import *
 from interactive_markers.menu_handler import *
 import geometry_msgs.msg
@@ -89,7 +89,7 @@ class InteractiveProbe(Plugin):
         # Get path to UI file which is a sibling of this file
         # in this example the .ui and .py file are in the same folder
         rp = rospkg.RosPack()
-        ui_file = os.path.join(rp.get_path('hiveground_rqt_interactive_probe'), 'resource', 'InteractiveProbe.ui')
+        ui_file = os.path.join(rp.get_path('rqt_interactive_probe'), 'resource', 'InteractiveProbe.ui')
         # Extend the widget with all attributes and children from UI file
         loadUi(ui_file, self._widget)
         # Give QObjects reasonable names
@@ -146,9 +146,9 @@ class InteractiveProbe(Plugin):
         self.refreshTopics()
         
         self.current_joint_state = sensor_msgs.msg.JointState()
-        self.joint_state_subscriber = rospy.Subscriber("joint_states", sensor_msgs.msg.JointState, self.callbackJointState)
+        self.joint_state_subscriber = rospy.Subscriber("/midem/joint_states", sensor_msgs.msg.JointState, self.callbackJointState)
                            
-        self.action_client = actionlib.SimpleActionClient("/midem_node/PTPController/ptp_follow_joint_trajectory", control_msgs.msg.FollowJointTrajectoryAction)
+        self.action_client = actionlib.SimpleActionClient("/midem/ptp_controller/ptp_follow_joint_trajectory", control_msgs.msg.FollowJointTrajectoryAction)
         self.action_client.wait_for_server(rospy.Duration(1.0))
 
     def shutdown_plugin(self):
@@ -276,17 +276,31 @@ class InteractiveProbe(Plugin):
         req.ik_request.pose_stamped.pose = self.marker_info[name].pose;
         req.ik_request.avoid_collisions = True;    
         req.ik_request.robot_state.joint_state = self.current_joint_state;         
+                         
                       
         try:
             res = moveit_msgs.srv.GetPositionIKResponse()
             res = rospy.ServiceProxy("compute_ik", moveit_msgs.srv.GetPositionIK).call(req)
             if res.error_code.val == moveit_msgs.msg.MoveItErrorCodes.SUCCESS:
+                #check joint distance
+                max_diff = 0;
+                for i in range(len(self.current_joint_state.position)):
+                    diff = res.solution.joint_state.position[i] - self.current_joint_state.position[i]
+                    print "Joint {} diff: {}".format(i, diff)
+                    if abs(diff) > max_diff:
+                        max_diff = diff
+                    
+                min_time = abs(max_diff) / 0.5;  
+                print "Max joint diff: {}".format(max_diff)
+                print "Min time: {}".format(min_time)
+                
+                
                 #prepair target 
                 trajectory = trajectory_msgs.msg.JointTrajectory()
                 trajectory.joint_names = self.current_joint_state.name
                 point = trajectory_msgs.msg.JointTrajectoryPoint()
                 point.positions = res.solution.joint_state.position
-                point.time_from_start = rospy.Duration(1.0);
+                point.time_from_start = rospy.Duration(min_time);
                 trajectory.points.append(point)
                 
                 
