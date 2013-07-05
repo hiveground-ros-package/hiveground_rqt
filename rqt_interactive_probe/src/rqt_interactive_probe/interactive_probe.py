@@ -286,13 +286,15 @@ class InteractiveProbe(Plugin):
                 max_diff = 0;
                 for i in range(len(self.current_joint_state.position)):
                     diff = res.solution.joint_state.position[i] - self.current_joint_state.position[i]
-                    print "Joint {} diff: {}".format(i, diff)
+                    #print "Joint {} diff: {}".format(i, diff)
                     if abs(diff) > max_diff:
                         max_diff = diff
                     
                 min_time = abs(max_diff) / 0.5;  
                 print "Max joint diff: {}".format(max_diff)
                 print "Min time: {}".format(min_time)
+                if min_time < 0.5:
+                    min_time = 0.5
                 
                 
                 #prepair target 
@@ -488,14 +490,12 @@ class InteractiveProbe(Plugin):
         elif feedback.event_type == InteractiveMarkerFeedback.MENU_SELECT:
             rospy.loginfo(s + ": menu item " + str(feedback.menu_entry_id) + " clicked" + mp + ".")
         elif feedback.event_type == InteractiveMarkerFeedback.POSE_UPDATE:
-            #if self.marker_info[feedback.marker_name].pose != feedback.pose:
-                #rospy.loginfo(s + ": pose changed")        
-                if self.checkIK(feedback.pose):
-                    self.marker_info[feedback.marker_name].pose = feedback.pose                                  
-                    if self._widget.follow_check_box.isChecked():
-                        self.moveToMarker(feedback.marker_name)
-                else:
-                    self.server.setPose(feedback.marker_name, self.marker_info[feedback.marker_name].pose)
+            if self.checkIK(feedback.pose):
+                self.marker_info[feedback.marker_name].pose = feedback.pose                                  
+                if self._widget.follow_check_box.isChecked():
+                    self.moveToMarker(feedback.marker_name)
+            else:
+                self.server.setPose(feedback.marker_name, self.marker_info[feedback.marker_name].pose)
                       
 #          << "\nposition = "
 #          << feedback.pose.position.x
