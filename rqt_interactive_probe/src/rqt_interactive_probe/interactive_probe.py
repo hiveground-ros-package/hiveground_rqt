@@ -56,6 +56,7 @@ import control_msgs.msg
 import trajectory_msgs.msg
 import actionlib
 import interaction_msgs.msg
+import math
 
 
 class MarkerInfo:
@@ -153,6 +154,7 @@ class InteractiveProbe(Plugin):
         self.action_client.wait_for_server(rospy.Duration(1.0))
         
         self.arm_gesture_subscriber = rospy.Subscriber("/midem_user_interaction/arm_gestures", interaction_msgs.msg.Gestures, self.callbackArmGesture)
+        self.skeleton_gesture_subscriber = rospy.Subscriber("/midem_user_interaction/skeleton_gestures", interaction_msgs.msg.Gestures, self.callbackSkeletonGesture)
 
     def shutdown_plugin(self):
         # TODO unregister all publishers here
@@ -249,12 +251,35 @@ class InteractiveProbe(Plugin):
     def _resetRotation(self):
         if len(self.selected_marker) == 0:
             return
-        self.marker_info[self.selected_marker].pose.orientation.x = 0
-        self.marker_info[self.selected_marker].pose.orientation.y = 0
-        self.marker_info[self.selected_marker].pose.orientation.z = 0
-        self.marker_info[self.selected_marker].pose.orientation.w = 1
-        self.server.setPose(self.selected_marker, self.marker_info[self.selected_marker].pose)
-        self.server.applyChanges()
+        
+        q = [];                    
+        if self._widget.xplus.isChecked():
+            q = tf.transformations.quaternion_from_euler(0, math.pi/2, 0);            
+        if self._widget.xminus.isChecked():
+            q = tf.transformations.quaternion_from_euler(0, -math.pi/2, 0);
+        if self._widget.yplus.isChecked():
+            q = tf.transformations.quaternion_from_euler(math.pi/2, 0, 0);
+        if self._widget.yminus.isChecked():
+            q = tf.transformations.quaternion_from_euler(-math.pi/2, 0, 0);
+        if self._widget.zplus.isChecked():
+            q = tf.transformations.quaternion_from_euler(0, 0, 0);
+        if self._widget.zminus.isChecked():
+            q = tf.transformations.quaternion_from_euler(math.pi, 0, 0);
+        
+        pose = copy.deepcopy(self.marker_info[self.selected_marker].pose)    
+        pose.orientation.x = q[0];
+        pose.orientation.y = q[1];
+        pose.orientation.z = q[2];
+        pose.orientation.w = q[3];
+        if self.checkIK(pose):            
+            self.marker_info[self.selected_marker].pose.orientation.x = q[0]
+            self.marker_info[self.selected_marker].pose.orientation.y = q[1]
+            self.marker_info[self.selected_marker].pose.orientation.z = q[2]
+            self.marker_info[self.selected_marker].pose.orientation.w = q[3]                       
+            self.server.setPose(self.selected_marker, self.marker_info[self.selected_marker].pose)
+            self.server.applyChanges()            
+            if self._widget.follow_check_box.isChecked():
+                self.moveToMarker(self.selected_marker)
         
     def _planMotion(self):
         if len(self.selected_marker) == 0:
@@ -350,7 +375,9 @@ class InteractiveProbe(Plugin):
                     rospy.loginfo("Add " + name + " to joystick list")
                     
                 
-    def callbackJoystick(self, msg):           
+    def callbackJoystick(self, msg):       
+        if not self._widget.enable_joy.isChecked():
+            return
         if self.last_button_state[0] != msg.buttons[0]:            
             if msg.buttons[0] == 1:    
                 self._widget.enable_translation_global.toggle()
@@ -383,52 +410,125 @@ class InteractiveProbe(Plugin):
         self.current_joint_state = msg
         
     def callbackArmGesture(self, msg):        
+        if not self._widget.enable_arm.isChecked():
+            return               
         if not (self._widget.enable_translation.isChecked() or self._widget.enable_rotation.isChecked()):
             return
         if len(self.selected_marker) == 0:
             return
-        t_scale = self._widget.joy_translation_scaling_spin_box.value()
+        t_scale = self._widget.joy_translation_scaling_spin_box.value() * 0.1
         r_scale = self._widget.joy_rotation_scaling_spin_box.value()
         
-        for gesture in msg.gestures:                                            
-            if "RUBBER_BAND_HAND" in gesture.name:                
-                if "UP" in gesture.name:                    
-                    rospy.loginfo("UP") 
-                    self.moveMarkerRelatively(self.selected_marker, 
-                                              0, 0, t_scale,
-                                              0, 0, 0)      
-                elif "DOWN" in gesture.name:
-                    rospy.loginfo("DOWN")
-                    self.moveMarkerRelatively(self.selected_marker, 
-                                              0, 0, -t_scale,
-                                              0, 0, 0)
-                elif "LEFT" in gesture.name:
-                    rospy.loginfo("LEFT")
-                    self.moveMarkerRelatively(self.selected_marker, 
-                                              0, -t_scale, 0,
-                                              0, 0, 0)
-                elif "RIGHT" in gesture.name:
-                    rospy.loginfo("RIGHT")
-                    self.moveMarkerRelatively(self.selected_marker, 
-                                              0,t_scale, 0,
-                                              0, 0, 0)
-                elif "FORWARD" in gesture.name:
-                    rospy.loginfo("FORWARD")
-                    self.moveMarkerRelatively(self.selected_marker, 
-                                              t_scale, 0, 0,
-                                              0, 0, 0)
-                elif "BACKWARD" in gesture.name:
-                    rospy.loginfo("BACKWARD")
-                    self.moveMarkerRelatively(self.selected_marker, 
-                                              -t_scale, 0, 0,
-                                              0, 0, 0)
-        
-        
+        if self._widget.enable_rotation.isChecked():
+            for gesture in msg.gestures:              
+                if "RUBBER_BAND_HANDS_" in gesture.name:
+                    if "ROTATE_X-" in gesture.name:
+                        rospy.loginfo("X-")
+                        self.moveMarkerRelatively(self.selected_marker, 
+                                                  0, 0, 0,
+                                                  -r_scale, 0, 0)                    
+                    elif "ROTATE_X+" in gesture.name:
+                        rospy.loginfo("X+") 
+                        self.moveMarkerRelatively(self.selected_marker, 
+                                                  0, 0, 0,
+                                                  r_scale, 0, 0)
+                    elif "ROTATE_Y-" in gesture.name:
+                        rospy.loginfo("Y-") 
+                        self.moveMarkerRelatively(self.selected_marker, 
+                                                  0, 0, 0,
+                                                  0, -r_scale, 0)
+                    elif "ROTATE_Y+" in gesture.name:
+                        rospy.loginfo("Y+") 
+                        self.moveMarkerRelatively(self.selected_marker, 
+                                                  0, 0, 0,
+                                                  0, r_scale, 0)
+                    elif "ROTATE_Z-" in gesture.name:
+                        rospy.loginfo("Z-") 
+                        self.moveMarkerRelatively(self.selected_marker, 
+                                                  0, 0, 0,
+                                                  0, 0, -r_scale)
+                    elif "ROTATE_Z+" in gesture.name:
+                        rospy.loginfo("Z+") 
+                        self.moveMarkerRelatively(self.selected_marker, 
+                                                  0, 0, 0,
+                                                  0, 0, r_scale)           
+                    return
+        if self._widget.enable_translation.isChecked():
+            for gesture in msg.gestures:                             
+                if "RUBBER_BAND_HAND_" in gesture.name:                
+                    if "UP" in gesture.name:                    
+                        rospy.loginfo("UP") 
+                        self.moveMarkerRelatively(self.selected_marker, 
+                                                  0, 0, t_scale,
+                                                  0, 0, 0)      
+                    elif "DOWN" in gesture.name:
+                        rospy.loginfo("DOWN")
+                        self.moveMarkerRelatively(self.selected_marker, 
+                                                  0, 0, -t_scale,
+                                                  0, 0, 0)
+                    elif "LEFT" in gesture.name:
+                        rospy.loginfo("LEFT")
+                        self.moveMarkerRelatively(self.selected_marker, 
+                                                  0, -t_scale, 0,
+                                                  0, 0, 0)
+                    elif "RIGHT" in gesture.name:
+                        rospy.loginfo("RIGHT")
+                        self.moveMarkerRelatively(self.selected_marker, 
+                                                  0,t_scale, 0,
+                                                  0, 0, 0)
+                    elif "FORWARD" in gesture.name:
+                        rospy.loginfo("FORWARD")
+                        self.moveMarkerRelatively(self.selected_marker, 
+                                                  t_scale, 0, 0,
+                                                  0, 0, 0)
+                    elif "BACKWARD" in gesture.name:
+                        rospy.loginfo("BACKWARD")
+                        self.moveMarkerRelatively(self.selected_marker, 
+                                                  -t_scale, 0, 0,
+                                                  0, 0, 0)
+                    return
+                 
         
         
     
     def callbackSkeletonGesture(self, msg):
-        pass
+        if not self._widget.enable_skeleton.isChecked():
+            return
+        if self._widget.enable_translation.isChecked():
+            t_scale = self._widget.joy_translation_scaling_spin_box.value() * 0.1
+            for gesture in msg.gestures:                     
+                if "RUBBER_BAND_SKELETON_" in gesture.name:
+                    if "UP" in gesture.name:                    
+                        rospy.loginfo("UP") 
+                        self.moveMarkerRelatively(self.selected_marker,
+                                                  0, 0, t_scale,
+                                                  0, 0, 0)      
+                    elif "DOWN" in gesture.name:
+                        rospy.loginfo("DOWN")
+                        self.moveMarkerRelatively(self.selected_marker,
+                                                  0, 0, -t_scale,
+                                                  0, 0, 0)
+                    elif "LEFT" in gesture.name:
+                        rospy.loginfo("LEFT")
+                        self.moveMarkerRelatively(self.selected_marker,
+                                                  0, -t_scale, 0,
+                                                  0, 0, 0)
+                    elif "RIGHT" in gesture.name:
+                        rospy.loginfo("RIGHT")
+                        self.moveMarkerRelatively(self.selected_marker,
+                                                  0, t_scale, 0,
+                                                  0, 0, 0)
+                    elif "FORWARD" in gesture.name:
+                        rospy.loginfo("FORWARD")
+                        self.moveMarkerRelatively(self.selected_marker,
+                                                  t_scale, 0, 0,
+                                                  0, 0, 0)
+                    elif "BACKWARD" in gesture.name:
+                        rospy.loginfo("BACKWARD")
+                        self.moveMarkerRelatively(self.selected_marker,
+                                                  - t_scale, 0, 0,
+                                                  0, 0, 0)
+                    return
         
     
     def checkIK(self, pose):
@@ -464,7 +564,7 @@ class InteractiveProbe(Plugin):
             if (y < self._widget.min_y_spin_box.value()) or (y > self._widget.max_y_spin_box.value()):
                 rospy.logwarn("Marker hit y limit! at {})".format(y))            
                 return True
-        if self._widget.enable_limit_y_check_box.isChecked():
+        if self._widget.enable_limit_z_check_box.isChecked():
             if (z < self._widget.min_z_spin_box.value()) or (z > self._widget.max_z_spin_box.value()):
                 rospy.logwarn("Marker hit z limit! at {})".format(z))            
                 return True                        
