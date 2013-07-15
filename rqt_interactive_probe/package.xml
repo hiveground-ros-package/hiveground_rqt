@@ -46,6 +46,7 @@
   <run_depend>interactive_markers</run_depend>
   <run_depend>moveit_msg</run_depend>
   <run_depend>arm_navigation_msgs</run_depend>
+  <run_depend>interaction_msgs</run_depend>
   
 
 
@@ -59,3 +60,4 @@
 
   </export>
 </package>
+

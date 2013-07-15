@@ -55,6 +55,7 @@ import moveit_msgs.msg
 import control_msgs.msg
 import trajectory_msgs.msg
 import actionlib
+import interaction_msgs.msg
 
 
 class MarkerInfo:
@@ -150,6 +151,8 @@ class InteractiveProbe(Plugin):
                            
         self.action_client = actionlib.SimpleActionClient("/midem/ptp_controller/ptp_follow_joint_trajectory", control_msgs.msg.FollowJointTrajectoryAction)
         self.action_client.wait_for_server(rospy.Duration(1.0))
+        
+        self.arm_gesture_subscriber = rospy.Subscriber("/midem_user_interaction/arm_gestures", interaction_msgs.msg.Gestures, self.callbackArmGesture)
 
     def shutdown_plugin(self):
         # TODO unregister all publishers here
@@ -291,8 +294,8 @@ class InteractiveProbe(Plugin):
                         max_diff = diff
                     
                 min_time = abs(max_diff) / 0.5;  
-                print "Max joint diff: {}".format(max_diff)
-                print "Min time: {}".format(min_time)
+                #print "Max joint diff: {}".format(max_diff)
+                #print "Min time: {}".format(min_time)
                 if min_time < 0.5:
                     min_time = 0.5
                 
@@ -378,6 +381,55 @@ class InteractiveProbe(Plugin):
     
     def callbackJointState(self, msg):
         self.current_joint_state = msg
+        
+    def callbackArmGesture(self, msg):        
+        if not (self._widget.enable_translation.isChecked() or self._widget.enable_rotation.isChecked()):
+            return
+        if len(self.selected_marker) == 0:
+            return
+        t_scale = self._widget.joy_translation_scaling_spin_box.value()
+        r_scale = self._widget.joy_rotation_scaling_spin_box.value()
+        
+        for gesture in msg.gestures:                                            
+            if "RUBBER_BAND_HAND" in gesture.name:                
+                if "UP" in gesture.name:                    
+                    rospy.loginfo("UP") 
+                    self.moveMarkerRelatively(self.selected_marker, 
+                                              0, 0, t_scale,
+                                              0, 0, 0)      
+                elif "DOWN" in gesture.name:
+                    rospy.loginfo("DOWN")
+                    self.moveMarkerRelatively(self.selected_marker, 
+                                              0, 0, -t_scale,
+                                              0, 0, 0)
+                elif "LEFT" in gesture.name:
+                    rospy.loginfo("LEFT")
+                    self.moveMarkerRelatively(self.selected_marker, 
+                                              0, -t_scale, 0,
+                                              0, 0, 0)
+                elif "RIGHT" in gesture.name:
+                    rospy.loginfo("RIGHT")
+                    self.moveMarkerRelatively(self.selected_marker, 
+                                              0,t_scale, 0,
+                                              0, 0, 0)
+                elif "FORWARD" in gesture.name:
+                    rospy.loginfo("FORWARD")
+                    self.moveMarkerRelatively(self.selected_marker, 
+                                              t_scale, 0, 0,
+                                              0, 0, 0)
+                elif "BACKWARD" in gesture.name:
+                    rospy.loginfo("BACKWARD")
+                    self.moveMarkerRelatively(self.selected_marker, 
+                                              -t_scale, 0, 0,
+                                              0, 0, 0)
+        
+        
+        
+        
+    
+    def callbackSkeletonGesture(self, msg):
+        pass
+        
     
     def checkIK(self, pose):
         #check IK
@@ -403,6 +455,20 @@ class InteractiveProbe(Plugin):
         #check IK
         pass
         
+    def isMoveHitLimit(self, x, y, z):
+        if self._widget.enable_limit_x_check_box.isChecked(): 
+            if (x < self._widget.min_x_spin_box.value()) or (x > self._widget.max_x_spin_box.value()):
+                rospy.logwarn("Marker hit x limit! at {})".format(x))            
+                return True
+        if self._widget.enable_limit_y_check_box.isChecked():            
+            if (y < self._widget.min_y_spin_box.value()) or (y > self._widget.max_y_spin_box.value()):
+                rospy.logwarn("Marker hit y limit! at {})".format(y))            
+                return True
+        if self._widget.enable_limit_y_check_box.isChecked():
+            if (z < self._widget.min_z_spin_box.value()) or (z > self._widget.max_z_spin_box.value()):
+                rospy.logwarn("Marker hit z limit! at {})".format(z))            
+                return True                        
+        return False
         
         
     def moveMarkerRelatively(self, name, x, y, z, rx, ry, rz):             
@@ -458,6 +524,10 @@ class InteractiveProbe(Plugin):
             pose.orientation.z = result_q[2]
             pose.orientation.w = result_q[3]
             
+        if self.isMoveHitLimit(pose.position.x, pose.position.y, pose.position.z):
+            return
+    
+                            
         #check IK
         req = moveit_msgs.srv.GetPositionIKRequest()        
         req.ik_request.group_name = "manipulator";
@@ -489,7 +559,10 @@ class InteractiveProbe(Plugin):
             
         elif feedback.event_type == InteractiveMarkerFeedback.MENU_SELECT:
             rospy.loginfo(s + ": menu item " + str(feedback.menu_entry_id) + " clicked" + mp + ".")
-        elif feedback.event_type == InteractiveMarkerFeedback.POSE_UPDATE:
+        elif feedback.event_type == InteractiveMarkerFeedback.POSE_UPDATE:            
+            if self.isMoveHitLimit(feedback.pose.position.x, feedback.pose.position.y, feedback.pose.position.z):
+                self.server.setPose(feedback.marker_name, self.marker_info[feedback.marker_name].pose)
+                return                
             if self.checkIK(feedback.pose):
                 self.marker_info[feedback.marker_name].pose = feedback.pose                                  
                 if self._widget.follow_check_box.isChecked():
