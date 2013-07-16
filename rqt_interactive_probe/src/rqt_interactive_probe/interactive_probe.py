@@ -290,9 +290,9 @@ class InteractiveProbe(Plugin):
         
        
     def callbackTrajectoryDone(self, status, result):
-        rospy.loginfo("done!")
-        rospy.loginfo(status)
-        rospy.loginfo(result)
+        #rospy.loginfo("done!")
+        #rospy.loginfo(status)
+        #rospy.loginfo(result)
         self.arm_is_active = False
         
     def moveToMarker(self, name):
@@ -316,11 +316,11 @@ class InteractiveProbe(Plugin):
                     if abs(diff) > max_diff:
                         max_diff = diff
                     
-                min_time = abs(max_diff) / 0.5;  
+                min_time = math.sqrt(2*abs(max_diff));  
                 #print "Max joint diff: {}".format(max_diff)
                 #print "Min time: {}".format(min_time)
-                if min_time < 0.5:
-                    min_time = 0.5
+                if min_time < 0.01:
+                    min_time = 0.01
                 
                 
                 #prepair target 
@@ -481,6 +481,9 @@ class InteractiveProbe(Plugin):
         if not self._widget.enable_skeleton.isChecked():
             return
         
+        if len(self.selected_marker) == 0:
+            return
+        
         for gesture in msg.gestures:                     
             if "ELBOW_FLAPPING_SKELETON_" in gesture.name:
                 self._widget.enable_translation_global.toggle()
@@ -488,33 +491,60 @@ class InteractiveProbe(Plugin):
         
         if self._widget.enable_translation.isChecked():
             t_scale = self._widget.joy_translation_scaling_spin_box.value() * 0.1
-            for gesture in msg.gestures:                     
-                if "RUBBER_BAND_SKELETON_" in gesture.name:
-                    if "UP" in gesture.name:                                            
-                        self.moveMarkerRelatively(self.selected_marker,
-                                                  0, 0, t_scale,
-                                                  0, 0, 0)      
-                    elif "DOWN" in gesture.name:        
-                        self.moveMarkerRelatively(self.selected_marker,
-                                                  0, 0, -t_scale,
-                                                  0, 0, 0)
-                    elif "LEFT" in gesture.name:
-                        self.moveMarkerRelatively(self.selected_marker,
-                                                  0, -t_scale, 0,
-                                                  0, 0, 0)
-                    elif "RIGHT" in gesture.name:                        
-                        self.moveMarkerRelatively(self.selected_marker,
-                                                  0, t_scale, 0,
-                                                  0, 0, 0)
-                    elif "FORWARD" in gesture.name:                        
-                        self.moveMarkerRelatively(self.selected_marker,
-                                                  t_scale, 0, 0,
-                                                  0, 0, 0)
-                    elif "BACKWARD" in gesture.name:                        
-                        self.moveMarkerRelatively(self.selected_marker,
-                                                  - t_scale, 0, 0,
-                                                  0, 0, 0)
+            for gesture in msg.gestures:     
+                if "RUBBER_BAND_SKELETON_" in gesture.name: 
+                    if self._widget.enable_translation_global.isChecked():                                                      
+                        if "UP" in gesture.name:                                            
+                            self.moveMarkerRelatively(self.selected_marker,
+                                                      0, 0, t_scale,
+                                                      0, 0, 0)      
+                        elif "DOWN" in gesture.name:        
+                            self.moveMarkerRelatively(self.selected_marker,
+                                                      0, 0, -t_scale,
+                                                      0, 0, 0)
+                        elif "LEFT" in gesture.name:
+                            self.moveMarkerRelatively(self.selected_marker,
+                                                      0, -t_scale, 0,
+                                                      0, 0, 0)
+                        elif "RIGHT" in gesture.name:                        
+                            self.moveMarkerRelatively(self.selected_marker,
+                                                      0, t_scale, 0,
+                                                      0, 0, 0)
+                        elif "FORWARD" in gesture.name:                        
+                            self.moveMarkerRelatively(self.selected_marker,
+                                                      t_scale, 0, 0,
+                                                      0, 0, 0)
+                        elif "BACKWARD" in gesture.name:                        
+                            self.moveMarkerRelatively(self.selected_marker,
+                                                      -t_scale, 0, 0,
+                                                      0, 0, 0)                        
+                    else:
+                        if "UP" in gesture.name:                                            
+                            self.moveMarkerRelatively(self.selected_marker,
+                                                      -t_scale, 0, 0,
+                                                      0, 0, 0)      
+                        elif "DOWN" in gesture.name:        
+                            self.moveMarkerRelatively(self.selected_marker,
+                                                      t_scale, 0, 0,
+                                                      0, 0, 0)
+                        elif "LEFT" in gesture.name:
+                            self.moveMarkerRelatively(self.selected_marker,
+                                                      0, -t_scale, 0,
+                                                      0, 0, 0)
+                        elif "RIGHT" in gesture.name:                        
+                            self.moveMarkerRelatively(self.selected_marker,
+                                                      0, t_scale, 0,
+                                                      0, 0, 0)
+                        elif "FORWARD" in gesture.name:                        
+                            self.moveMarkerRelatively(self.selected_marker,
+                                                      0, 0, t_scale,
+                                                      0, 0, 0)
+                        elif "BACKWARD" in gesture.name:                        
+                            self.moveMarkerRelatively(self.selected_marker,
+                                                      0, 0, -t_scale,
+                                                      0, 0, 0)          
                     return
+                    
         
     
     def checkIK(self, pose):
