@@ -1,5 +1,4 @@
 """
-/*
  * Copyright (c) 2013, HiveGround Co., Ltd.
  * All rights reserved.
  *
@@ -28,8 +27,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  * Author: Mahisorn Wongphati
- *
- */
+ * 
 """
 
 
@@ -422,33 +420,27 @@ class InteractiveProbe(Plugin):
         if self._widget.enable_rotation.isChecked():
             for gesture in msg.gestures:              
                 if "RUBBER_BAND_HANDS_" in gesture.name:
-                    if "ROTATE_X-" in gesture.name:
-                        rospy.loginfo("X-")
+                    if "ROTATE_X-" in gesture.name:                        
                         self.moveMarkerRelatively(self.selected_marker, 
                                                   0, 0, 0,
                                                   -r_scale, 0, 0)                    
-                    elif "ROTATE_X+" in gesture.name:
-                        rospy.loginfo("X+") 
+                    elif "ROTATE_X+" in gesture.name:                        
                         self.moveMarkerRelatively(self.selected_marker, 
                                                   0, 0, 0,
                                                   r_scale, 0, 0)
-                    elif "ROTATE_Y-" in gesture.name:
-                        rospy.loginfo("Y-") 
+                    elif "ROTATE_Y-" in gesture.name:                        
                         self.moveMarkerRelatively(self.selected_marker, 
                                                   0, 0, 0,
                                                   0, -r_scale, 0)
-                    elif "ROTATE_Y+" in gesture.name:
-                        rospy.loginfo("Y+") 
+                    elif "ROTATE_Y+" in gesture.name:                        
                         self.moveMarkerRelatively(self.selected_marker, 
                                                   0, 0, 0,
                                                   0, r_scale, 0)
-                    elif "ROTATE_Z-" in gesture.name:
-                        rospy.loginfo("Z-") 
+                    elif "ROTATE_Z-" in gesture.name:                        
                         self.moveMarkerRelatively(self.selected_marker, 
                                                   0, 0, 0,
                                                   0, 0, -r_scale)
-                    elif "ROTATE_Z+" in gesture.name:
-                        rospy.loginfo("Z+") 
+                    elif "ROTATE_Z+" in gesture.name:                        
                         self.moveMarkerRelatively(self.selected_marker, 
                                                   0, 0, 0,
                                                   0, 0, r_scale)           
@@ -456,33 +448,27 @@ class InteractiveProbe(Plugin):
         if self._widget.enable_translation.isChecked():
             for gesture in msg.gestures:                             
                 if "RUBBER_BAND_HAND_" in gesture.name:                
-                    if "UP" in gesture.name:                    
-                        rospy.loginfo("UP") 
+                    if "UP" in gesture.name:                                         
                         self.moveMarkerRelatively(self.selected_marker, 
                                                   0, 0, t_scale,
                                                   0, 0, 0)      
-                    elif "DOWN" in gesture.name:
-                        rospy.loginfo("DOWN")
+                    elif "DOWN" in gesture.name:                        
                         self.moveMarkerRelatively(self.selected_marker, 
                                                   0, 0, -t_scale,
                                                   0, 0, 0)
-                    elif "LEFT" in gesture.name:
-                        rospy.loginfo("LEFT")
+                    elif "LEFT" in gesture.name:                        
                         self.moveMarkerRelatively(self.selected_marker, 
                                                   0, -t_scale, 0,
                                                   0, 0, 0)
-                    elif "RIGHT" in gesture.name:
-                        rospy.loginfo("RIGHT")
+                    elif "RIGHT" in gesture.name:                        
                         self.moveMarkerRelatively(self.selected_marker, 
                                                   0,t_scale, 0,
                                                   0, 0, 0)
-                    elif "FORWARD" in gesture.name:
-                        rospy.loginfo("FORWARD")
+                    elif "FORWARD" in gesture.name:                        
                         self.moveMarkerRelatively(self.selected_marker, 
                                                   t_scale, 0, 0,
                                                   0, 0, 0)
-                    elif "BACKWARD" in gesture.name:
-                        rospy.loginfo("BACKWARD")
+                    elif "BACKWARD" in gesture.name:                        
                         self.moveMarkerRelatively(self.selected_marker, 
                                                   -t_scale, 0, 0,
                                                   0, 0, 0)
@@ -494,37 +480,37 @@ class InteractiveProbe(Plugin):
     def callbackSkeletonGesture(self, msg):
         if not self._widget.enable_skeleton.isChecked():
             return
+        
+        for gesture in msg.gestures:                     
+            if "ELBOW_FLAPPING_SKELETON_" in gesture.name:
+                self._widget.enable_translation_global.toggle()
+                return                    
+        
         if self._widget.enable_translation.isChecked():
             t_scale = self._widget.joy_translation_scaling_spin_box.value() * 0.1
             for gesture in msg.gestures:                     
                 if "RUBBER_BAND_SKELETON_" in gesture.name:
-                    if "UP" in gesture.name:                    
-                        rospy.loginfo("UP") 
+                    if "UP" in gesture.name:                                            
                         self.moveMarkerRelatively(self.selected_marker,
                                                   0, 0, t_scale,
                                                   0, 0, 0)      
-                    elif "DOWN" in gesture.name:
-                        rospy.loginfo("DOWN")
+                    elif "DOWN" in gesture.name:        
                         self.moveMarkerRelatively(self.selected_marker,
                                                   0, 0, -t_scale,
                                                   0, 0, 0)
                     elif "LEFT" in gesture.name:
-                        rospy.loginfo("LEFT")
                         self.moveMarkerRelatively(self.selected_marker,
                                                   0, -t_scale, 0,
                                                   0, 0, 0)
-                    elif "RIGHT" in gesture.name:
-                        rospy.loginfo("RIGHT")
+                    elif "RIGHT" in gesture.name:                        
                         self.moveMarkerRelatively(self.selected_marker,
                                                   0, t_scale, 0,
                                                   0, 0, 0)
-                    elif "FORWARD" in gesture.name:
-                        rospy.loginfo("FORWARD")
+                    elif "FORWARD" in gesture.name:                        
                         self.moveMarkerRelatively(self.selected_marker,
                                                   t_scale, 0, 0,
                                                   0, 0, 0)
-                    elif "BACKWARD" in gesture.name:
-                        rospy.loginfo("BACKWARD")
+                    elif "BACKWARD" in gesture.name:                        
                         self.moveMarkerRelatively(self.selected_marker,
                                                   - t_scale, 0, 0,
                                                   0, 0, 0)
@@ -668,25 +654,10 @@ class InteractiveProbe(Plugin):
                 if self._widget.follow_check_box.isChecked():
                     self.moveToMarker(feedback.marker_name)
             else:
-                self.server.setPose(feedback.marker_name, self.marker_info[feedback.marker_name].pose)
-                      
-#          << "\nposition = "
-#          << feedback.pose.position.x
-#          << ", " << feedback.pose.position.y
-#          << ", " << feedback.pose.position.z
-#          << "\norientation = "
-#          << feedback.pose.orientation.w
-#          << ", " << feedback.pose.orientation.x
-#          << ", " << feedback.pose.orientation.y
-#          << ", " << feedback.pose.orientation.z
-#          << "\nframe: " << feedback.header.frame_id
-#          << " time: " << feedback.header.stamp.sec << "sec, "
-#          << feedback.header.stamp.nsec << " nsec" )
+                self.server.setPose(feedback.marker_name, self.marker_info[feedback.marker_name].pose)                     
         elif feedback.event_type == InteractiveMarkerFeedback.MOUSE_DOWN:
-            #rospy.loginfo(s + ": mouse down" + mp + ".")
             pass
         elif feedback.event_type == InteractiveMarkerFeedback.MOUSE_UP:
-            #rospy.loginfo(s + ": mouse up" + mp + ".")
             pass
         self.server.applyChanges()    
    
