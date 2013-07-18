@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>415</width>
-    <height>510</height>
+    <height>547</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -561,6 +561,55 @@
     </layout>
    </item>
    <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_12">
+     <item>
+      <widget class="QLabel" name="label_13">
+       <property name="text">
+        <string>Acceleration</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSpinBox" name="acc_spin_box">
+       <property name="suffix">
+        <string>%</string>
+       </property>
+       <property name="minimum">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <number>100</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSlider" name="acc_slider">
+       <property name="minimum">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <number>100</number>
+       </property>
+       <property name="value">
+        <number>1</number>
+       </property>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="invertedControls">
+        <bool>false</bool>
+       </property>
+       <property name="tickPosition">
+        <enum>QSlider::TicksBelow</enum>
+       </property>
+       <property name="tickInterval">
+        <number>5</number>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
     <layout class="QHBoxLayout" name="horizontalLayout_3">
      <item>
       <widget class="QPushButton" name="clear_button">
@@ -862,6 +911,9 @@
   <zorder></zorder>
   <zorder>frame_combo_box</zorder>
   <zorder>label_5</zorder>
+  <zorder>acc_slider</zorder>
+  <zorder>label_13</zorder>
+  <zorder>label_13</zorder>
  </widget>
  <resources/>
  <connections>
@@ -872,12 +924,12 @@
    <slot>setChecked(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>80</x>
-     <y>197</y>
+     <x>90</x>
+     <y>413</y>
     </hint>
     <hint type="destinationlabel">
-     <x>137</x>
-     <y>201</y>
+     <x>184</x>
+     <y>413</y>
     </hint>
    </hints>
   </connection>
@@ -888,12 +940,12 @@
    <slot>setChecked(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>66</x>
-     <y>190</y>
+     <x>76</x>
+     <y>413</y>
     </hint>
     <hint type="destinationlabel">
-     <x>217</x>
-     <y>205</y>
+     <x>254</x>
+     <y>413</y>
     </hint>
    </hints>
   </connection>
@@ -904,12 +956,12 @@
    <slot>setChecked(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>102</x>
-     <y>188</y>
+     <x>112</x>
+     <y>413</y>
     </hint>
     <hint type="destinationlabel">
-     <x>270</x>
-     <y>196</y>
+     <x>324</x>
+     <y>413</y>
     </hint>
    </hints>
   </connection>
@@ -921,11 +973,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>114</x>
-     <y>234</y>
+     <y>441</y>
     </hint>
     <hint type="destinationlabel">
-     <x>132</x>
-     <y>234</y>
+     <x>184</x>
+     <y>441</y>
     </hint>
    </hints>
   </connection>
@@ -936,12 +988,12 @@
    <slot>setChecked(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>86</x>
-     <y>223</y>
+     <x>96</x>
+     <y>441</y>
     </hint>
     <hint type="destinationlabel">
-     <x>227</x>
-     <y>224</y>
+     <x>254</x>
+     <y>441</y>
     </hint>
    </hints>
   </connection>
@@ -952,12 +1004,44 @@
    <slot>setChecked(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>17</x>
-     <y>227</y>
+     <x>27</x>
+     <y>441</y>
     </hint>
     <hint type="destinationlabel">
-     <x>297</x>
-     <y>222</y>
+     <x>324</x>
+     <y>441</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>acc_slider</sender>
+   <signal>sliderMoved(int)</signal>
+   <receiver>acc_spin_box</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>217</x>
+     <y>302</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>129</x>
+     <y>301</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>acc_spin_box</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>acc_slider</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>128</x>
+     <y>289</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>290</x>
+     <y>299</y>
     </hint>
    </hints>
   </connection>

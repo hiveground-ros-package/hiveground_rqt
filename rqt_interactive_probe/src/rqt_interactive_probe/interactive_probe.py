@@ -327,7 +327,8 @@ class InteractiveProbe(Plugin):
                     if abs(diff) > max_diff:
                         max_diff = diff
                     
-                min_time = math.sqrt(2*abs(max_diff));  
+                acc = (self._widget.acc_spin_box.value() / 100.0) * 1.0;
+                min_time = math.sqrt((2*abs(max_diff))/acc);  
                 #print "Max joint diff: {}".format(max_diff)
                 #print "Min time: {}".format(min_time)
                 if min_time < 0.01:
@@ -501,7 +502,7 @@ class InteractiveProbe(Plugin):
                 return                    
         
         if self._widget.enable_translation.isChecked():
-            t_scale = self._widget.joy_translation_scaling_spin_box.value() * 0.1
+            t_scale = self._widget.joy_translation_scaling_spin_box.value() * 0.01
             for gesture in msg.gestures:     
                 if "RUBBER_BAND_SKELETON_" in gesture.name: 
                     if self._widget.enable_translation_global.isChecked():                                                      
