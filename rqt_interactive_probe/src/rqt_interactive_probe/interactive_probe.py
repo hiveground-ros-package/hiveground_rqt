@@ -110,11 +110,14 @@ class InteractiveProbe(Plugin):
         self._widget.joy_topic_check_box.toggled.connect(self._enableJoyMessageToggled)
         self._widget.reset_rotation.clicked.connect(self._resetRotation)
         self._widget.plan_button.clicked.connect(self._planMotion)
+        self._widget.frame_combo_box.currentIndexChanged.connect(self._selectFrame)
         
         
         context.add_widget(self._widget)
     
-        
+      
+        #rospy.wait_for_service("compute_ik")
+        self.listener = tf.TransformListener()        
         self.server = InteractiveMarkerServer("InteractiveProbe")
         self.fixed_frame = "/base_link"              
         self.marker_id = 0
@@ -122,26 +125,10 @@ class InteractiveProbe(Plugin):
         self.selected_marker = ""
         self.last_button_state = [0 for i in range(16)]
         self.arm_is_active = False
-        
-        
+        self._selectFrame(0);      
+                
            
-        #rospy.wait_for_service("compute_ik")
-        self.listener = tf.TransformListener()
-        self.listener.waitForTransform("base_link", "link6", rospy.Time(0), rospy.Duration(5.0))
-        (trans,rot) = self.listener.lookupTransform("base_link", "link6", rospy.Time(0))
-        rospy.loginfo(trans)
-        rospy.loginfo(rot)
-        self.start_trans = trans
-        self.start_rot = rot
-        
-        self._widget.x_spin_box.setValue(trans[0])
-        self._widget.y_spin_box.setValue(trans[1])
-        self._widget.z_spin_box.setValue(trans[2])                        
-        euler = tf.transformations.euler_from_quaternion(rot)
-        self._widget.rx_spin_box.setValue(euler[0]) 
-        self._widget.ry_spin_box.setValue(euler[1])
-        self._widget.rz_spin_box.setValue(euler[2])
-
+      
         #Refresh all related topics
         self.refreshTopics()
         
@@ -230,12 +217,14 @@ class InteractiveProbe(Plugin):
                                   "Do you want to delete all marker(s)",
                                   QMessageBox.Ok, QMessageBox.Cancel)        
         if ret == QMessageBox.Ok:
-            for key in self.marker_info:              
-                self.server.erase(key)                               
-            self.marker_info.clear()
-            self.server.applyChanges()
-            self.selected_marker = ""                                     
-                
+            self.clearAllMarkers()
+                                                 
+    def clearAllMarkers(self):
+        for key in self.marker_info:                     
+            self.server.erase(key)                               
+        self.marker_info.clear()
+        self.server.applyChanges()
+        self.selected_marker = ""
         
     def _enableJoyMessageToggled(self, toggled):            
         if toggled:
@@ -288,6 +277,28 @@ class InteractiveProbe(Plugin):
             return
         self.moveToMarker(self.selected_marker)
         
+    def _selectFrame(self, index):
+        print self._widget.frame_combo_box.itemText(index)
+        if index == 0:
+            self.planning_group = "solder_lead"
+        else:
+            self.planning_group = "manipulator"
+        self.control_frame = self._widget.frame_combo_box.currentText()
+        self.listener.waitForTransform("/base_link", self.control_frame, rospy.Time(0), rospy.Duration(5.0))
+        (trans,rot) = self.listener.lookupTransform("/base_link", self.control_frame, rospy.Time(0))
+        rospy.loginfo(trans)
+        rospy.loginfo(rot)
+        self.start_trans = trans
+        self.start_rot = rot        
+        self._widget.x_spin_box.setValue(trans[0])
+        self._widget.y_spin_box.setValue(trans[1])
+        self._widget.z_spin_box.setValue(trans[2])                        
+        euler = tf.transformations.euler_from_quaternion(rot)
+        self._widget.rx_spin_box.setValue(euler[0]) 
+        self._widget.ry_spin_box.setValue(euler[1])
+        self._widget.rz_spin_box.setValue(euler[2])     
+        self.clearAllMarkers()
+                    
        
     def callbackTrajectoryDone(self, status, result):
         #rospy.loginfo("done!")
@@ -297,7 +308,7 @@ class InteractiveProbe(Plugin):
         
     def moveToMarker(self, name):
         req = moveit_msgs.srv.GetPositionIKRequest()        
-        req.ik_request.group_name = "manipulator";
+        req.ik_request.group_name = self.planning_group;
         req.ik_request.pose_stamped.header.frame_id = "base_link";
         req.ik_request.pose_stamped.pose = self.marker_info[name].pose;
         req.ik_request.avoid_collisions = True;    
@@ -550,7 +561,7 @@ class InteractiveProbe(Plugin):
     def checkIK(self, pose):
         #check IK
         req = moveit_msgs.srv.GetPositionIKRequest()        
-        req.ik_request.group_name = "manipulator";
+        req.ik_request.group_name = self.planning_group
         req.ik_request.pose_stamped.header.frame_id = "base_link";
         req.ik_request.pose_stamped.pose = pose;
         req.ik_request.avoid_collisions = True;                
@@ -706,7 +717,7 @@ class InteractiveProbe(Plugin):
         color.b = 0.5
         color.a = 0.8 
         markers.append(self.makeBox(int_marker, color))        
-        markers.append(self.makeArrow(int_marker, length, color))
+        #markers.append(self.makeArrow(int_marker, length, color))
         
         if selectable:
             self.makeSelectableControl(int_marker, markers)

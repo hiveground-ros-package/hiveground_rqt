@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>415</width>
-    <height>475</height>
+    <height>510</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -530,6 +530,37 @@
     </layout>
    </item>
    <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_11">
+     <item>
+      <widget class="QLabel" name="label_5">
+       <property name="text">
+        <string>Frame</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="frame_combo_box">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <item>
+        <property name="text">
+         <string>/lead</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>/link6</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
     <layout class="QHBoxLayout" name="horizontalLayout_3">
      <item>
       <widget class="QPushButton" name="clear_button">
@@ -829,6 +860,8 @@
   </layout>
   <zorder></zorder>
   <zorder></zorder>
+  <zorder>frame_combo_box</zorder>
+  <zorder>label_5</zorder>
  </widget>
  <resources/>
  <connections>
