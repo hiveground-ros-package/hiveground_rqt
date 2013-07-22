@@ -111,6 +111,7 @@ class InteractiveProbe(Plugin):
         self._widget.reset_rotation.clicked.connect(self._resetRotation)
         self._widget.plan_button.clicked.connect(self._planMotion)
         self._widget.frame_combo_box.currentIndexChanged.connect(self._selectFrame)
+        self._widget.enable_translation_global.toggled.connect(self._enableGlobalToggled)
         
         
         context.add_widget(self._widget)
@@ -298,7 +299,17 @@ class InteractiveProbe(Plugin):
         self._widget.ry_spin_box.setValue(euler[1])
         self._widget.rz_spin_box.setValue(euler[2])     
         self.clearAllMarkers()
-                    
+    def _enableGlobalToggled(self, toggled):
+        if not self._widget.enable_translation_global.isChecked():
+            self._widget.enable_tx.setChecked(False)
+            self._widget.enable_ty.setChecked(False)
+            self._widget.enable_tz.setChecked(True)
+        else:
+            self._widget.enable_tx.setChecked(True)
+            self._widget.enable_ty.setChecked(True)
+            self._widget.enable_tz.setChecked(False)
+        return                 
+            
        
     def callbackTrajectoryDone(self, status, result):
         #rospy.loginfo("done!")
@@ -311,7 +322,7 @@ class InteractiveProbe(Plugin):
         req.ik_request.group_name = self.planning_group;
         req.ik_request.pose_stamped.header.frame_id = "base_link";
         req.ik_request.pose_stamped.pose = self.marker_info[name].pose;
-        req.ik_request.avoid_collisions = True;    
+        req.ik_request.avoid_collisions = False;    
         req.ik_request.robot_state.joint_state = self.current_joint_state;         
                          
                       
@@ -426,8 +437,8 @@ class InteractiveProbe(Plugin):
             return
         if len(self.selected_marker) == 0:
             return
-        t_scale = self._widget.joy_translation_scaling_spin_box.value() * 0.1
-        r_scale = self._widget.joy_rotation_scaling_spin_box.value()
+        t_scale = self._widget.joy_translation_scaling_spin_box.value() * 0.05
+        r_scale = self._widget.joy_rotation_scaling_spin_box.value() * 0.1
         
         if self._widget.enable_rotation.isChecked():
             for gesture in msg.gestures:              
@@ -499,6 +510,14 @@ class InteractiveProbe(Plugin):
         for gesture in msg.gestures:                     
             if "ELBOW_FLAPPING_SKELETON_" in gesture.name:
                 self._widget.enable_translation_global.toggle()
+                if not self._widget.enable_translation_global.isChecked():
+                    self._widget.enable_tx.setChecked(False)
+                    self._widget.enable_ty.setChecked(False)
+                    self._widget.enable_tz.setChecked(True)
+                else:
+                    self._widget.enable_tx.setChecked(True)
+                    self._widget.enable_ty.setChecked(True)
+                    self._widget.enable_tz.setChecked(False)
                 return                    
         
         if self._widget.enable_translation.isChecked():
@@ -549,11 +568,11 @@ class InteractiveProbe(Plugin):
                                                       0, 0, 0)
                         elif "FORWARD" in gesture.name:                        
                             self.moveMarkerRelatively(self.selected_marker,
-                                                      0, 0, t_scale,
+                                                      0, 0, -t_scale,
                                                       0, 0, 0)
                         elif "BACKWARD" in gesture.name:                        
                             self.moveMarkerRelatively(self.selected_marker,
-                                                      0, 0, -t_scale,
+                                                      0, 0, t_scale,
                                                       0, 0, 0)          
                     return
                     
@@ -784,9 +803,9 @@ class InteractiveProbe(Plugin):
     def makeBox(self, msg, color):
         marker = Marker()    
         marker.type = Marker.CUBE
-        marker.scale.x = msg.scale * 0.45
-        marker.scale.y = msg.scale * 0.45
-        marker.scale.z = msg.scale * 0.45
+        marker.scale.x = msg.scale * 0.2
+        marker.scale.y = msg.scale * 0.2
+        marker.scale.z = msg.scale * 0.2
         marker.color = color           
         return marker
     

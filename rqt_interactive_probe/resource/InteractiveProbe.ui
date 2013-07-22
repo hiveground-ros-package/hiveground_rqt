@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>415</width>
-    <height>547</height>
+    <height>552</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -783,6 +783,9 @@
        <property name="text">
         <string>Global</string>
        </property>
+       <property name="shortcut">
+        <string>G</string>
+       </property>
       </widget>
      </item>
     </layout>
@@ -909,11 +912,6 @@
   </layout>
   <zorder></zorder>
   <zorder></zorder>
-  <zorder>frame_combo_box</zorder>
-  <zorder>label_5</zorder>
-  <zorder>acc_slider</zorder>
-  <zorder>label_13</zorder>
-  <zorder>label_13</zorder>
  </widget>
  <resources/>
  <connections>
@@ -945,22 +943,6 @@
     </hint>
     <hint type="destinationlabel">
      <x>254</x>
-     <y>413</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>enable_translation</sender>
-   <signal>clicked(bool)</signal>
-   <receiver>enable_tz</receiver>
-   <slot>setChecked(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>112</x>
-     <y>413</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>324</x>
      <y>413</y>
     </hint>
    </hints>
